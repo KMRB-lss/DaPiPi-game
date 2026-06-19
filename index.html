@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>打屁屁 - 发泄解压计数器</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+    body {
+      text-align: center;
+      font-family: 'Comic Neue', cursive, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #ffe4e1 0%, #ffd0c4 100%);
+      min-height: 100vh;
+      min-width: 100vw;
+      display: block;
+      position: relative;
+      transition: background 0.5s ease;
+    }
+    body.combo-3  { background: linear-gradient(135deg, #ffe4e1, #ffccb0); }
+    body.combo-5  { background: linear-gradient(135deg, #ffe0d0, #ffbb99); }
+    body.combo-10 { background: linear-gradient(135deg, #ffd8c8, #ffaa77); }
+    body.combo-15 { background: linear-gradient(135deg, #ffd0b0, #ff8855); }
+    body.combo-20 { background: linear-gradient(135deg, #ffccaa, #ff6644); }
+    /* 红温效果 - 根据击打次数变色 */
+    body.hot-20  { background: linear-gradient(135deg, #ffe4e1, #ffb3b3); }
+    body.hot-40  { background: linear-gradient(135deg, #ffcccc, #ff8080); }
+    body.hot-60  { background: linear-gradient(135deg, #ff9999, #ff4d4d); }
+    body.hot-80  { background: linear-gradient(135deg, #ff6666, #ff1a1a); }
+    body.hot-100 { background: linear-gradient(135deg, #ff3333, #cc0000); }
+    body.hot-150 { background: linear-gradient(135deg, #cc0000, #800000); box-shadow: inset 0 0 100px rgba(255,0,0,0.3); }
+    body.hot-200 { background: linear-gradient(135deg, #990000, #4d0000); box-shadow: inset 0 0 150px rgba(255,0,0,0.5); animation: hotPulse 0.5s ease infinite; }
+    @keyframes hotPulse {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.1); }
+    }
+    .container {
+      padding: 15px;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      z-index: 50;
+      text-align: center;
+      border-width: 0px;
+      border-style: solid;
+      border-color: var(--tw-ring-offset-color);
+      overflow: hidden;
+    }
+    h1 {
+      font-size: 1.6rem;
+      color: #d45a3a;
+      margin-bottom: 6px;
+      letter-spacing: 2px;
+    }
+    .butt {
+      font-size: 150px;
+      cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><text y='30' font-size='30'>🍑</text></svg>") 18 18, pointer;
+      display: inline-block;
+      line-height: 1;
+      transition: left 0.05s ease, top 0.05s ease, filter 0.2s;
+      filter: drop-shadow(4px 8px 16px rgba(180,60,30,0.25));
+      user-select: none;
+      position: fixed;
+      z-index: 100;
+      transform: rotate(0deg);
+    }
+    .butt:active { filter: drop-shadow(2px 4px 8px rgba(180,60,30,0.4)) brightness(0.95); }
+    .butt.bounce { animation: buttBounce 0.2s ease; }
+    @keyframes buttBounce {
+      0%   { transform: scale(1); }
+      30%  { transform: scale(1.12); }
+      60%  { transform: scale(0.85); }
+      100% { transform: scale(1); }
+    }
+    .butt.dodge { transition: left 0.12s ease, top 0.12s ease; }
+    .butt.swift { transition: left 0.07s ease, top 0.07s ease; }
+
+    /* 进化表情覆盖层 */
+    .evo-overlay {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 45px;
+      z-index: 3;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s ease;
+    }
+    .evo-overlay.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-10px);
+      animation: evoPulse 1s ease;
+    }
+    @keyframes evoPulse {
+      0%, 100% { transform: translateX(-50%) translateY(-10px) scale(1); }
+      50% { transform: translateX(-50%) translateY(-15px) scale(1.2); }
+    }
+
+    /* 连击徽章 */
+    .combo-badge {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #ff4433;
+      color: white;
+      font-size: 1.1rem;
+      font-weight: bold;
+      padding: 6px 16px;
+      border-radius: 40px;
+      z-index: 1000;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all 0.2s ease;
+      box-shadow: 0 3px 12px rgba(255,68,51,0.4);
+      white-space: nowrap;
+    }
+    .combo-badge.show { opacity: 1; transform: scale(1); }
+    .combo-badge.fire {
+      animation: comboFire 0.3s ease;
+      box-shadow: 0 3px 20px rgba(255,68,51,0.7);
+    }
+    @keyframes comboFire {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
+
+    /* 气泡 */
+    .bubble-area { position: relative; height: 0; z-index: 10; }
+    .speech-bubble {
+      position: absolute;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 5px 14px;
+      border-radius: 30px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #d45a3a;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.12s, transform 0.12s;
+    }
+    .speech-bubble.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-8px);
+    }
+
+    .count-wrap {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #5a2e1a;
+      margin: 8px 0 4px;
+    }
+    .count-wrap span { color: #d45a3a; font-size: 2rem; display: inline-block; }
+    .count-wrap span.pop { animation: numPop 0.15s ease; }
+    @keyframes numPop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+
+    /* 双进度条 */
+    .bar-group { margin: 6px 0; }
+    .bar-label {
+      font-size: 0.75rem;
+      color: #8a5a4a;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .bar-track {
+      width: 100%;
+      height: 8px;
+      background: #f0d0c8;
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 20px;
+      transition: width 0.15s ease;
+    }
+    .bar-fill.tolerance { background: linear-gradient(90deg, #ff8866, #ff4433); }
+    .bar-fill.shit       { background: linear-gradient(90deg, #88cc66, #55aa33); }
+
+    .message {
+      margin: 12px auto;
+      padding: 12px 20px;
+      background: #fff9c4;
+      border-radius: 40px;
+      display: inline-block;
+      font-size: 1rem;
+      min-width: 160px;
+      color: #7a4a2a;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .message.pop {
+      animation: msgPop 0.3s ease;
+      border-color: #ffaa44;
+    }
+    @keyframes msgPop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+    .message.crit-msg  { border-color: #ffdd00; background: #fff9d0; }
+    .message.fart-msg  { border-color: #88cc44; background: #eeffcc; }
+    .message.miss-msg  { border-color: #8888ff; background: #ddeeff; }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 60;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+      pointer-events: auto;
+    }
+    .btn {
+      background: #ffaa88;
+      border: none;
+      padding: 9px 22px;
+      font-size: 0.9rem;
+      border-radius: 50px;
+      cursor: pointer;
+      color: #4a2a1a;
+      font-weight: bold;
+      transition: all 0.15s;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+    }
+    .btn:hover { background: #ff8866; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.12); }
+    .btn:active { transform: scale(0.95); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+    .btn-danger { background: #ff5555; color: white; }
+    .btn-danger:hover { background: #dd3333; }
+    .btn-gold { background: linear-gradient(135deg, #ffcc00, #ff9900); color: #4a2a00; }
+    .btn-gold:hover { background: linear-gradient(135deg, #ffdd33, #ffaa22); }
+    .btn-purple { background: #bb66dd; color: white; }
+    .btn-purple:hover { background: #9944bb; }
+    .btn-sm { padding: 6px 16px; font-size: 0.8rem; }
+
+    /* 统计面板 */
+    .stats-toggle {
+      margin-top: 12px;
+      font-size: 0.95rem;
+      color: #886655;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s, opacity 0.3s ease;
+      opacity: 1;
+      pointer-events: auto;
+      font-weight: 500;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .stats-toggle:hover { color: #ff6644; }
+    .stats-panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease, padding 0.35s ease;
+      padding: 0 12px;
+      text-align: left;
+      font-size: 0.8rem;
+      color: #5a3a2a;
+    }
+    .stats-panel.open {
+      max-height: 400px;
+      padding: 10px 12px;
+    }
+    .stats-panel table { width: 100%; border-collapse: collapse; }
+    .stats-panel td { padding: 3px 6px; }
+    .stats-panel td:last-child { text-align: right; font-weight: bold; color: #d45a3a; }
+    .stats-title {
+      font-weight: bold;
+      font-size: 0.85rem;
+      text-align: center !important;
+      padding-bottom: 6px !important;
+      color: #8a5a4a !important;
+    }
+
+    .footnote {
+      font-size: 0.85rem;
+      color: #887766;
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    /* 模态框 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: white;
+      border-radius: 40px;
+      padding: 32px 40px;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+      animation: modalPop 0.3s ease;
+    }
+    @keyframes modalPop {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .modal-box h2 { font-size: 1.8rem; margin-bottom: 8px; }
+    .modal-box p { font-size: 1.1rem; color: #555; margin-bottom: 16px; }
+
+    /* 屏幕抖动 */
+    .shake {
+      animation: shake 0.3s ease;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%  { transform: translateX(-8px) rotate(-1deg); }
+      40%  { transform: translateX(8px) rotate(1deg); }
+      60%  { transform: translateX(-5px) rotate(-0.5deg); }
+      80%  { transform: translateX(5px) rotate(0.5deg); }
+    }
+
+    /* 粒子 */
+    .particle-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998; overflow: hidden; }
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: particleFloat linear forwards;
+    }
+    @keyframes particleFloat {
+      0%   { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-200px) scale(0.2); }
+    }
+    .particle-fart  { background: #88dd44; box-shadow: 0 0 6px #aaff66; border-radius: 50% 50% 50% 0; }
+    .particle-crit  { background: #ffdd00; box-shadow: 0 0 8px #ffee55; }
+    .particle-fire  { background: #ff5500; box-shadow: 0 0 8px #ff8800; }
+    .particle-ash   {
+      background: #888;
+      border-radius: 50%;
+      animation: ashFloat linear forwards;
+    }
+    @keyframes ashFloat {
+      0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(-300px) rotate(360deg); }
+    }
+
+    /* 截击特效 */
+    .intercept-flash {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #ffdd00;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 10;
+      text-shadow: 0 0 30px rgba(255,200,0,0.9);
+      white-space: nowrap;
+    }
+    .intercept-flash.show {
+      animation: interceptPop 0.45s ease forwards;
+    }
+    @keyframes interceptPop {
+      0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.4); }
+      40%  { opacity: 1; transform: translate(-50%, -80%) scale(1.3); }
+      100% { opacity: 0; transform: translate(-50%, -130%) scale(0.7); }
+    }
+
+    /* 追击提示 */
+    .dodge-hint {
+      font-size: 1.1rem;
+      color: #885533;
+      margin: 2px 0 4px;
+      min-height: 1.2em;
+      transition: opacity 0.2s, left 0.12s ease, top 0.12s ease;
+      font-weight: 600;
+      position: fixed;
+      z-index: 90;
+      pointer-events: none;
+      text-shadow: 0 1px 3px rgba(255,255,255,0.9);
+      white-space: nowrap;
+    }
+    .dodge-hint.hot { color: #ff4433; font-weight: bold; }
+
+    /* 挑战模式 */
+    .challenge-bar {
+      margin-top: 8px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .challenge-bar.show { display: flex; }
+    .challenge-timer {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #d45a3a;
+      background: #fff0e8;
+      padding: 4px 18px;
+      border-radius: 30px;
+      min-width: 60px;
+    }
+    .challenge-score {
+      font-size: 0.95rem;
+      color: #8a5a4a;
+    }
+
+    /* 进化通知 */
+    .evo-notification {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-size: 3rem;
+      z-index: 9997;
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .evo-notification.show {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+    .evo-notification .sub {
+      font-size: 1rem;
+      display: block;
+      margin-top: 6px;
+      color: #d45a3a;
+    }
+
+    /* 终极结局动画 */
+    .finale-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: #1a0a00;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      flex-direction: column;
+    }
+    .finale-overlay.show { display: flex; }
+    .finale-text {
+      font-size: 4rem;
+      animation: finaleBurn 2s ease forwards;
+    }
+    @keyframes finaleBurn {
+      0%   { transform: scale(0.3); opacity: 0; filter: brightness(0.3); }
+      30%  { transform: scale(1.2); opacity: 1; filter: brightness(2); }
+      60%  { transform: scale(1); filter: brightness(1); }
+      100% { transform: scale(0.8); opacity: 0.8; filter: brightness(0.8); }
+    }
+    .finale-sub {
+      color: #ff8844;
+      font-size: 1.3rem;
+      margin-top: 20px;
+      animation: fadeInUp 1s 1s ease forwards;
+      opacity: 0;
+    }
+    @keyframes fadeInUp {
+      0%   { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 20px 16px; }
+      .butt { font-size: 130px; }
+      h1 { font-size: 1.3rem; }
+      .btn { padding: 7px 14px; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container" id="container">
+  <h1>🤜 打屁屁发泄室 🤛</h1>
+
+  <div id="message" class="message">👉 点一下屁股试试 👈</div>
+
+  <div id="butt" class="butt">🍑</div>
+  <div id="evoOverlay" class="evo-overlay"></div>
+  <div id="comboBadge" class="combo-badge">🔥 ×1</div>
+  <div id="speechBubble" class="speech-bubble"></div>
+  <div id="interceptFlash" class="intercept-flash">⚡截击！</div>
+  <div class="dodge-hint" id="dodgeHint">💨 点击屁股，别让它跑了！</div>
+
+  <div class="count-wrap">
+    👋 已打 <span id="countValue">0</span> 下
+  </div>
+
+  <div class="bar-group">
+    <div class="bar-label"><span>🍑 屁股耐受度</span><span id="tolLabel">0%</span></div>
+    <div class="bar-track"><div id="toleranceBar" class="bar-fill tolerance"></div></div>
+  </div>
+  <div class="bar-group">
+    <div class="bar-label"><span>💩 括约肌疲劳度</span><span id="shitLabel">0%</span></div>
+    <div class="bar-track"><div id="shitBar" class="bar-fill shit"></div></div>
+  </div>
+
+  <div class="btn-row">
+    <button id="resetBtn" class="btn btn-danger btn-sm">🧼 重置</button>
+    <button id="challengeBtn" class="btn btn-purple btn-sm">🏃 追桃挑战</button>
+    <button id="auto50Btn" class="btn">🤖 ×50</button>
+
+  </div>
+  <div class="challenge-bar" id="challengeBar">
+    <span class="challenge-timer" id="challengeTimer">20</span>
+    <span class="challenge-score">命中 <span id="challengeHits">0</span> 次</span>
+    <button id="challengeStopBtn" class="btn btn-danger btn-sm">✋ 结束</button>
+  </div>
+
+  <div class="stats-toggle" id="statsToggle">📊 查看屁股档案 ▼</div>
+  <div class="stats-panel" id="statsPanel">
+    <table>
+      <tr><td colspan="2" class="stats-title">🎖️ <span id="titleDisplay">围观群众</span></td></tr>
+      <tr><td>总伤害（历史累计）</td><td><span id="statTotal">0</span> 下</td></tr>
+      <tr><td>🔥 最高连击</td><td><span id="statMaxCombo">0</span> 连</td></tr>
+      <tr><td>⭐ 暴击次数</td><td><span id="statCrit">0</span></td></tr>
+      <tr><td>💨 放屁次数</td><td><span id="statFart">0</span></td></tr>
+      <tr><td>🤸 闪避次数</td><td><span id="statDodge">0</span></td></tr>
+      <tr><td>👊 被反打次数</td><td><span id="statCounter">0</span></td></tr>
+      <tr><td>⚡ 截击成功</td><td><span id="statIntercept">0</span></td></tr>
+      <tr><td>💨 屁股逃跑</td><td><span id="statDodged">0</span></td></tr>
+      <tr><td>📈 当前手速</td><td><span id="statSpeed">-</span></td></tr>
+    </table>
+    <div style="text-align:left;margin-top:8px;">
+      <button id="hardResetBtn" class="btn btn-danger btn-sm" style="font-size:0.7rem;">🗑️ 清空所有记录</button>
+    </div>
+  </div>
+
+  <div class="footnote">🔊 点击有声音 · Space 打 · R 重置 · 移动端震动</div>
+</div>
+
+<!-- 粒子容器 -->
+<div class="particle-container" id="particleContainer"></div>
+
+<!-- 进化通知 -->
+<div class="evo-notification" id="evoNotification">
+  <span id="evoEmoji">🍑</span>
+  <span class="sub" id="evoText">屁股进化了！</span>
+</div>
+
+<!-- 终极结局 -->
+<div class="finale-overlay" id="finaleOverlay">
+  <div class="finale-text">🔥🍑🔥</div>
+  <div class="finale-sub">🍑 永垂不朽 · 享年 200 下 🍑</div>
+</div>
+
+<!-- 模态框 -->
+<div id="modalOverlay" class="modal-overlay">
+  <div class="modal-box">
+    <h2>💨</h2>
+    <p id="modalText">屁股离家出走了，5 秒后回来</p>
+    <button id="modalCloseBtn" class="btn">😢 好吧</button>
+  </div>
+</div>
+
+<!-- 启动确认 -->
+<div id="startupOverlay" class="modal-overlay">
+  <div class="modal-box" style="max-width:440px;">
+    <h2>🍑 欢迎回来！</h2>
+    <p id="startupText">检测到上次的记录</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button id="startupContinue" class="btn btn-gold">继续</button>
+      <button id="startupReset" class="btn btn-danger">重新开始</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // ============ 状态 ============
+  let count = 0;
+  let totalHits = parseInt(localStorage.getItem('pipi_total')) || 0;
+  let tolerance = 0;
+  let shitLevel = 0;
+  let combo = 0;
+  let maxCombo = parseInt(localStorage.getItem('pipi_maxcombo')) || 0;
+  let lastClickTime = 0;
+  let recentTimes = [];
+  let comboTimeoutId = null;
+  let missCount = 0, critCount = 0, fartCount = 0, dodgeCount = 0;
+  let isBananaMode = false, modalActive = false, autoClicking = false, finaleActive = false;
+  let currentEvo = 0;
+  // 追击系统
+  let isDodging = false;
+  let interceptCount = 0;
+  let dodgeEscaped = 0;
+  let dodgeX = 0, dodgeY = 0;
+  // 挑战模式
+  let challengeActive = false;
+  let challengeHitsCount = 0;
+  let challengeTimerId = null;
+  let challengeTimeLeft = 20;
+
+  // DOM 引用
+  const $ = id => document.getElementById(id);
+  const countSpan    = $('countValue');
+  const messageDiv   = $('message');
+  const butt         = $('butt');
+  const evoOverlay   = $('evoOverlay');
+  const comboBadge   = $('comboBadge');
+  const bubble       = $('speechBubble');
+  const tolBar       = $('toleranceBar');
+  const tolLabel     = $('tolLabel');
+  const shitBar      = $('shitBar');
+  const shitLabel    = $('shitLabel');
+  const resetBtn     = $('resetBtn');
+  const auto50Btn    = $('auto50Btn');
+  const statsToggle  = $('statsToggle');
+  const statsPanel   = $('statsPanel');
+  const modalOverlay = $('modalOverlay');
+  const modalText    = $('modalText');
+  const modalClose   = $('modalCloseBtn');
+  const particleCtn  = $('particleContainer');
+  const evoNotif     = $('evoNotification');
+  const evoEmoji     = $('evoEmoji');
+  const evoText      = $('evoText');
+  const finaleOverlay = $('finaleOverlay');
+  const container    = $('container');
+  const buttStage    = $('buttStage');
+  const interceptEl  = $('interceptFlash');
+  const dodgeHint    = $('dodgeHint');
+  const challengeBtn = $('challengeBtn');
+  const challengeBar = $('challengeBar');
+  const challengeTimer = $('challengeTimer');
+  const challengeHitsEl = $('challengeHits');
+  const challengeStopBtn = $('challengeStopBtn');
+  const btnRow = document.querySelector('.btn-row');
+
+  // ============ 配置 ============
+  const COMBO_TIMEOUT = 1500;
+  
+  // 鼠标追踪相关变量
+  let mouseX = 0;
+  let mouseY = 0;
+  let mouseAvoidTimer = null;
+  
+  // 获取躲避延迟时间（随着击打次数减少）
+  function getAvoidDelay() {
+    const baseDelay = 800; // 基础延迟 800ms
+    const minDelay = 200; // 最小延迟 200ms
+    const reduction = Math.floor(totalHits / 50) * 50; // 每50次减少50ms
+    return Math.max(minDelay, baseDelay - reduction);
+  }
+  
+  // 计算两点距离
+  function getDistance(x1, y1, x2, y2) {
+    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+  }
+  
+  // 鼠标追踪躲避检测
+  function checkMouseAvoid() {
+    if (!challengeActive || isDodging || autoClicking) return;
+    
+    const buttRect = butt.getBoundingClientRect();
+    const buttCenterX = buttRect.left + buttRect.width / 2;
+    const buttCenterY = buttRect.top + buttRect.height / 2;
+    const distance = getDistance(mouseX, mouseY, buttCenterX, buttCenterY);
+    
+    // 鼠标距离桃子小于 150px 时触发躲避
+    if (distance < 150) {
+      if (mouseAvoidTimer) clearTimeout(mouseAvoidTimer);
+      mouseAvoidTimer = setTimeout(() => {
+        moveButtRandom(true, true); // 快速移动躲避
+      }, getAvoidDelay());
+    } else if (mouseAvoidTimer) {
+      clearTimeout(mouseAvoidTimer);
+      mouseAvoidTimer = null;
+    }
+  }
+  
+  // 鼠标移动事件监听
+  document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    checkMouseAvoid();
+  });
+
+  const funnyMessages = {
+    1:   "第一下！屁股：嗯？",
+    5:   "屁股：你是不是暗恋我？",
+    10:  "屁股：再打我要放屁了 💨",
+    15:  "屁股：我感觉你在敷衍我",
+    20:  "屁股：我怀疑你在公报私仇",
+    25:  "屁股：你手不疼吗？",
+    30:  "屁股：今晚你要睡沙发 🛋️",
+    35:  "屁股：我要报警了 🚔",
+    42:  "屁股：宇宙终极答案就是——别打了！",
+    50:  "屁股：罢了，我脱敏了 😑",
+    55:  "屁股：你老板今天又骂你了？",
+    60:  "屁股：我已经没有知觉了…",
+    69:  "屁股：… 你故意的吧？",
+    70:  "屁股：你比容嬷嬷还狠 📍",
+    80:  "屁股：我介绍我表哥榴莲给你认识",
+    90:  "屁股：我觉得你需要看看心理医生",
+    100: "🎉 成就达成：钢铁屁股！",
+    110: "屁股：已经三位数了……你是我见过最执着的人",
+    120: "屁股：我觉得我们应该好好谈谈 🤝",
+    130: "屁股：我申请退役 🏳️",
+    150: "屁股：我已写信给联合国人权理事会 📨",
+    180: "屁股：你的手指起泡了吗？🩹",
+    200: "🔥🔥🔥 屁股：我自焚了，你满意了吧！"
+  };
+
+  let shitPending = false;
+  let tolPending = false;
+
+  const comboMessages = {
+    3:   "三连！屁股有点慌了",
+    5:   "五连！屁股在颤抖",
+    7:   "七连！屁股开始求饶",
+    10:  "🔥 十连！屁股冒烟了",
+    15:  "🔥🔥 十五连！屁股已红肿",
+    20:  "💥 二十连！屁股失去知觉",
+    30:  "💥💥 三十连！你是个魔鬼",
+    40:  "💀 四十连！屁股已气绝",
+    50:  "👑 五十连！人肉打桩机！",
+    60:  "🌀 六十连！打桩机转世！",
+    80:  "⚡ 八十连！手速突破天际！",
+    100: "👑💥💥 一百连！天下无敌！"
+  };
+
+  const shoutWords = ['哎哟！', '噢！', '爽！', '再来！', '啊！', '不要～', '哼！', '唔…', '轻点～', '嗯～', '呀！', '别！', '疼疼疼！'];
+
+  const dodgeTaunts = [
+    '嘿嘿，打不着～', '你太慢了！', '再来再来！', '瞄得准点儿！',
+    '就这？就这？', '屁股会瞬移！', '略略略～', '你追不上我！',
+    '我在这边！', '反应再快点！', '菜就多练！',
+    '哈哈哈追不上！', '你手速不行啊～', '我在这儿呢！', '快！再快一点！',
+    '放弃吧！', '屁股会分身术！', '你确定你在打屁股？不是在打空气？',
+    '左边！不对，右边！骗你的～'
+  ];
+
+  const evoStages = [
+    { min: 0,    emoji: '🍑',        text: '天真无邪小白臀' },
+    { min: 20,   emoji: '😳🍑',      text: '害羞了！' },
+    { min: 50,   emoji: '😠🍑',      text: '开始生气了 😠' },
+    { min: 100,  emoji: '😭🍑',      text: '被打哭了 😭' },
+    { min: 200,  emoji: '🔥🍑',      text: '屁股着火啦 🔥' },
+    { min: 500,  emoji: '💀🍑',      text: '濒死状态 💀' },
+    { min: 1000, emoji: '👻',        text: '屁股已超脱轮回 👻' }
+  ];
+
+  const titles = [
+    { min: 0,    name: '🫣 围观群众' },
+    { min: 10,   name: '🖐️ 搓澡新手' },
+    { min: 50,   name: '👋 打屁股实习生' },
+    { min: 100,  name: '🥋 铁砂掌入门' },
+    { min: 200,  name: '🔨 人肉打桩机' },
+    { min: 500,  name: '💪 金牌催臀师' },
+    { min: 1000, name: '👑 屁股毁灭者' },
+    { min: 2000, name: '☠️ 诸臀之黄昏' }
+  ];
+
+  // ============ 音频 ============
+  let audioCtx = null;
+  function ensureCtx() {
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return null;
+    if (!audioCtx) audioCtx = new Ctor();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function playSound(type) {
+    const ctx = ensureCtx();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      if (type === 'slap') {
+        const len = ctx.sampleRate * 0.08;
+        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.012));
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        const g = ctx.createGain();
+        g.gain.value = 0.3;
+        src.connect(g); g.connect(ctx.destination); src.start();
+      } else if (type === 'fart') {
+        const len = ctx.sampleRate * 0.25;
+        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.04)) * 0.5;
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        const osc = ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
+        const gOsc = ctx.createGain();
+        gOsc.gain.setValueAtTime(0.2, now);
+        gOsc.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(gOsc); gOsc.connect(ctx.destination); osc.start(); osc.stop(now + 0.25);
+        const gNoise = ctx.createGain();
+        gNoise.gain.setValueAtTime(0.25, now);
+        gNoise.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        src.connect(gNoise); gNoise.connect(ctx.destination); src.start();
+      } else if (type === 'dodge') {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.15, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        osc.connect(g); g.connect(ctx.destination); osc.start(); osc.stop(now + 0.1);
+      } else if (type === 'crit') {
+        const osc = ctx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(1600, now + 0.06);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.2, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        osc.connect(g); g.connect(ctx.destination); osc.start(); osc.stop(now + 0.1);
+        const len = ctx.sampleRate * 0.04;
+        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.008));
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        const g2 = ctx.createGain();
+        g2.gain.value = 0.3;
+        src.connect(g2); g2.connect(ctx.destination); src.start();
+      } else if (type === 'counter') {
+        const osc = ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.15);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.25, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.connect(g); g.connect(ctx.destination); osc.start(); osc.stop(now + 0.15);
+      } else if (type === 'scream') {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1000, now);
+        osc.frequency.exponentialRampToValueAtTime(2000, now + 0.1);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.2, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(g); g.connect(ctx.destination); osc.start(); osc.stop(now + 0.25);
+      }
+    } catch(e) {}
+  }
+
+  // ============ 震动 ============
+  function vibrate(n) { if (navigator.vibrate) navigator.vibrate(n || 50); }
+
+  // ============ 粒子 ============
+  function spawnParticles(type, cx, cy, n) {
+    const rect = butt.getBoundingClientRect();
+    const x = cx || rect.left + rect.width / 2;
+    const y = cy || rect.top + rect.height / 2;
+    const cls = type === 'fart' ? 'particle-fart' : type === 'crit' ? 'particle-crit' : type === 'fire' ? 'particle-fire' : 'particle-ash';
+    const colors = {
+      fart: ['#88dd44', '#66cc33', '#aaff66', '#55bb22'],
+      crit: ['#ffdd00', '#ffee55', '#ffcc00', '#ffaa00'],
+      fire: ['#ff5500', '#ff8800', '#ff3300', '#ffaa33'],
+      ash:  ['#888', '#999', '#777', '#aaa']
+    };
+    const pal = colors[type] || ['#888'];
+    for (let i = 0; i < (n || 12); i++) {
+      const el = document.createElement('div');
+      el.className = 'particle ' + cls;
+      el.style.background = pal[Math.floor(Math.random() * pal.length)];
+      el.style.width = (4 + Math.random() * 10) + 'px';
+      el.style.height = el.style.width;
+      el.style.left = (x + (Math.random() - 0.5) * 60) + 'px';
+      el.style.top = (y + (Math.random() - 0.5) * 40) + 'px';
+      el.style.animationDuration = (0.5 + Math.random() * 0.6) + 's';
+      el.style.animationDelay = (Math.random() * 0.1) + 's';
+      if (type === 'ash') {
+        el.style.animation = `ashFloat ${1 + Math.random() * 1.5}s linear forwards`;
+        el.style.animationDelay = (Math.random() * 0.5) + 's';
+      }
+      particleCtn.appendChild(el);
+      setTimeout(() => el.remove(), 2500);
+    }
+  }
+
+  // ============ 工具函数 ============
+  function showMessage(text, pop, cls) {
+    messageDiv.textContent = text;
+    messageDiv.className = 'message';
+    if (cls) messageDiv.classList.add(cls);
+    if (pop) {
+      messageDiv.classList.remove('pop');
+      void messageDiv.offsetWidth;
+      messageDiv.classList.add('pop');
+    }
+  }
+
+  function shout(text) {
+    const word = text || shoutWords[Math.floor(Math.random() * shoutWords.length)];
+    bubble.textContent = word;
+    bubble.classList.add('show');
+    clearTimeout(bubble._hideTimer);
+    bubble._hideTimer = setTimeout(() => bubble.classList.remove('show'), 600);
+  }
+
+  function shake() {
+    container.classList.remove('shake');
+    void container.offsetWidth;
+    container.classList.add('shake');
+  }
+
+  function getEvoStage() {
+    let s = 0;
+    for (let i = evoStages.length - 1; i >= 0; i--) {
+      if (totalHits >= evoStages[i].min) { s = i; break; }
+    }
+    return s;
+  }
+
+  function getTitle() {
+    let t = titles[0];
+    for (const ti of titles) { if (totalHits >= ti.min) t = ti; }
+    return t;
+  }
+
+  // ============ 追击系统 ============
+  let wanderTimerId = null;
+  let hasWanderStarted = false;
+
+  function getDodgeChance() {
+    // 随 count 上升：20% → 65%（含 combo 加成）
+    let base = 20 + count * 0.35;
+    if (combo >= 5) base += 8;
+    if (combo >= 10) base += 10;
+    if (challengeActive) base += 12;
+    return Math.min(base, 65);
+  }
+
+  function getMoveDuration() {
+    // combo 越高移动越快
+    if (combo >= 10 || count >= 80) return 60;
+    if (combo >= 5 || count >= 40) return 90;
+    return 120;
+  }
+
+  function moveButtRandom(skipTaunt, fast) {
+    const windowW = window.innerWidth;
+    const windowH = window.innerHeight;
+    const buttW = parseInt(butt.style.fontSize) || 130;
+    const buttH = buttW;
+    // 限制移动范围：桃子始终保持在屏幕可见范围内
+    const padding = 20; // 边缘留白
+    const maxX = windowW - buttW - padding;
+    const maxY = windowH - buttH - padding;
+    const newX = padding + Math.random() * maxX;
+    const newY = padding + Math.random() * maxY;
+    dodgeX = newX;
+    dodgeY = newY;
+    const dur = fast ? 45 : getMoveDuration();
+    butt.style.transition = `left ${dur}ms ease, top ${dur}ms ease`;
+    butt.classList.add('dodge');
+    if (!fast && combo >= 5) butt.classList.add('swift');
+    else butt.classList.remove('swift');
+    butt.style.left = newX + 'px';
+    butt.style.top = newY + 'px';
+    butt.style.transform = 'none';
+    isDodging = true;
+    // 更新提示文字位置，跟随桃子
+    if (dodgeHint) {
+      dodgeHint.style.left = (newX + buttW / 2) + 'px';
+      dodgeHint.style.top = (newY - 40) + 'px';
+      dodgeHint.style.transform = 'translateX(-50%)';
+    }
+    if (!skipTaunt) {
+      const taunt = dodgeTaunts[Math.floor(Math.random() * dodgeTaunts.length)];
+      dodgeHint.textContent = '💨 ' + taunt;
+      dodgeHint.className = 'dodge-hint hot';
+    }
+    clearTimeout(butt._dodgeTimer);
+    butt._dodgeTimer = setTimeout(() => {
+      isDodging = false;
+      butt.classList.remove('dodge', 'swift');
+    }, dur + 40);
+  }
+
+  function startWander() {
+    if (hasWanderStarted) return;
+    hasWanderStarted = true;
+    function scheduleWander() {
+      if (modalActive || finaleActive || challengeActive) {
+        wanderTimerId = setTimeout(scheduleWander, 2000);
+        return;
+      }
+      const minWait = Math.max(800, 2500 - count * 12);
+      const maxWait = Math.max(1500, 4000 - count * 15);
+      const delay = minWait + Math.random() * (maxWait - minWait);
+      wanderTimerId = setTimeout(() => {
+        if (!autoClicking && !modalActive && !finaleActive) {
+          moveButtRandom();
+          dodgeEscaped++;
+        }
+        scheduleWander();
+      }, delay);
+    }
+    scheduleWander();
+  }
+
+  function stopWander() {
+    if (wanderTimerId) { clearTimeout(wanderTimerId); wanderTimerId = null; }
+    hasWanderStarted = false;
+  }
+
+  function showIntercept() {
+    interceptEl.classList.remove('show');
+    void interceptEl.offsetWidth;
+    interceptEl.classList.add('show');
+    clearTimeout(interceptEl._t);
+    interceptEl._t = setTimeout(() => interceptEl.classList.remove('show'), 500);
+  }
+
+  // ============ 连击 ============
+  function updateCombo() {
+    const now = Date.now();
+    if (now - lastClickTime < COMBO_TIMEOUT) {
+      combo++;
+    } else {
+      combo = 1;
+    }
+    lastClickTime = now;
+
+    // 手速
+    recentTimes.push(now);
+    if (recentTimes.length > 20) recentTimes.shift();
+
+    if (combo > maxCombo) {
+      maxCombo = combo;
+      localStorage.setItem('pipi_maxcombo', maxCombo);
+    }
+
+    // 连击UI
+    if (combo >= 2) {
+      comboBadge.textContent = '🔥 ×' + combo;
+      comboBadge.classList.add('show');
+      comboBadge.classList.remove('fire');
+      void comboBadge.offsetWidth;
+      comboBadge.classList.add('fire');
+      // 连击时隐藏按钮和统计面板切换，避免误触
+      if (btnRow) {
+        btnRow.style.opacity = '0';
+        btnRow.style.pointerEvents = 'none';
+      }
+      if (statsToggle) {
+        statsToggle.style.opacity = '0';
+        statsToggle.style.pointerEvents = 'none';
+      }
+      // 设置连击超时检测
+      if (comboTimeoutId) clearTimeout(comboTimeoutId);
+      comboTimeoutId = setTimeout(() => {
+        comboBreak();
+      }, COMBO_TIMEOUT);
+    } else {
+      comboBadge.classList.remove('show');
+      // 非连击状态显示按钮和统计面板切换
+      if (btnRow) {
+        btnRow.style.opacity = '1';
+        btnRow.style.pointerEvents = 'auto';
+      }
+      if (statsToggle) {
+        statsToggle.style.opacity = '1';
+        statsToggle.style.pointerEvents = 'auto';
+      }
+    }
+
+    // 连击成就
+    if (comboMessages[combo]) {
+      showMessage(comboMessages[combo], true);
+      // 连击里程碑粒子
+      spawnParticles('crit');
+      if (combo >= 30) setTimeout(() => spawnParticles('fire'), 200);
+      if (combo >= 50) setTimeout(() => { spawnParticles('crit'); spawnParticles('fire'); }, 400);
+    }
+
+    // 背景色变化 + combo 速度联动
+    document.body.className = '';
+    if (combo >= 20) document.body.className = 'combo-20';
+    else if (combo >= 15) document.body.className = 'combo-15';
+    else if (combo >= 10) document.body.className = 'combo-10';
+    else if (combo >= 5) document.body.className = 'combo-5';
+    else if (combo >= 3) document.body.className = 'combo-3';
+    // 连击越高屁股越敏捷
+    if (combo >= 5) butt.classList.add('swift'); else butt.classList.remove('swift');
+  }
+
+  function comboBreak() {
+    if (combo >= 2) {
+      const lost = combo;
+      combo = 0;
+      comboBadge.classList.remove('show');
+      showMessage(`💔 连击中断！×${lost} 你太慢了`, true);
+    }
+    // 连击中断后显示按钮和统计面板切换
+    if (btnRow) {
+      btnRow.style.opacity = '1';
+      btnRow.style.pointerEvents = 'auto';
+    }
+    if (statsToggle) {
+      statsToggle.style.opacity = '1';
+      statsToggle.style.pointerEvents = 'auto';
+    }
+  }
+
+  // ============ 随机事件 ============
+  function rollRandomEvent() {
+    const r = Math.random();
+    if (r < 0.02) return 'crit';
+    if (r < 0.05) return 'counter';
+    if (r < 0.09) return 'dodge';
+    if (r < 0.15) return 'fart';
+    return null;
+  }
+
+  // ============ 进化表情效果 ============
+  function showEvoEffect(emoji) {
+    evoOverlay.textContent = emoji;
+    evoOverlay.classList.remove('show');
+    void evoOverlay.offsetWidth;
+    evoOverlay.classList.add('show');
+    clearTimeout(evoOverlay._timer);
+    evoOverlay._timer = setTimeout(() => {
+      evoOverlay.classList.remove('show');
+    }, 1500);
+  }
+
+  // ============ 进化 ============
+  function updateEvolution() {
+    const newEvo = getEvoStage();
+    if (newEvo > currentEvo) {
+      currentEvo = newEvo;
+      const stage = evoStages[currentEvo];
+      evoEmoji.textContent = stage.emoji;
+      evoText.textContent = '屁股进化：' + stage.text;
+      evoNotif.classList.add('show');
+      clearTimeout(evoNotif._timer);
+      evoNotif._timer = setTimeout(() => evoNotif.classList.remove('show'), 2000);
+      spawnParticles('fire');
+      // 显示进化表情效果
+      showEvoEffect(getEvoEmoji(stage.emoji));
+    }
+  }
+
+  function getEvoEmoji(fullEmoji) {
+    // 提取表情部分（去掉🍑）
+    return fullEmoji.replace('🍑', '') || fullEmoji;
+  }
+
+  // ============ 核心更新 ============
+  function updateCount(inc, isSpecial) {
+    count += inc;
+    totalHits += inc;
+    localStorage.setItem('pipi_total', totalHits);
+    if (!isSpecial) {
+      tolerance = Math.min(100, tolerance + 1);
+      shitLevel = Math.min(100, shitLevel + 1 + Math.floor(Math.random() * 3));
+    }
+    countSpan.textContent = count;
+    countSpan.classList.remove('pop');
+    void countSpan.offsetWidth;
+    countSpan.classList.add('pop');
+
+    // 进度条
+    tolBar.style.width = tolerance + '%';
+    tolLabel.textContent = tolerance + '%';
+    shitBar.style.width = shitLevel + '%';
+    shitLabel.textContent = shitLevel + '%';
+
+    // 屁股随计数缩小（越打越难瞄准）
+    (function shrinkButt() {
+      let sz = 150;
+      if (count >= 160) sz = 110;
+      else if (count >= 120) sz = 125;
+      else if (count >= 80) sz = 135;
+      else if (count >= 50) sz = 143;
+      butt.style.fontSize = sz + 'px';
+    })();
+
+    // 红温效果 - 根据击打次数改变背景颜色
+    (function updateHotEffect() {
+      document.body.classList.remove('hot-20', 'hot-40', 'hot-60', 'hot-80', 'hot-100', 'hot-150', 'hot-200');
+      if (count >= 200) document.body.classList.add('hot-200');
+      else if (count >= 150) document.body.classList.add('hot-150');
+      else if (count >= 100) document.body.classList.add('hot-100');
+      else if (count >= 80) document.body.classList.add('hot-80');
+      else if (count >= 60) document.body.classList.add('hot-60');
+      else if (count >= 40) document.body.classList.add('hot-40');
+      else if (count >= 20) document.body.classList.add('hot-20');
+    })();
+
+    // 屎意触发
+    if (shitLevel >= 100 && !shitPending) {
+      shitPending = true;
+      showMessage('💩💨 不好！要拉肚子了！屁股紧急避险！', true, 'fart-msg');
+      spawnParticles('fart');
+      setTimeout(() => { shitPending = false; doReset('💩 冲水完毕……重新开始'); }, 1500);
+      return;
+    }
+
+    // 耐受度触发
+    if (tolerance >= 100 && !isBananaMode && !tolPending) {
+      isBananaMode = true;
+      tolPending = true;
+      showMessage('🍳 屁股已变成铁板一块，你失去了兴趣', true);
+      setTimeout(() => { tolPending = false; doReset('屁股被煎熟了，自动重置… 🍑'); }, 2000);
+      return;
+    }
+
+    // 成就
+    if (funnyMessages[count]) {
+      showMessage(funnyMessages[count], true);
+    } else if (count > 0 && count % 10 === 0 && !comboMessages[combo]) {
+      showMessage(`屁股：已经 ${count} 下了，你的良心不会痛吗？`, true);
+    }
+
+    // 200 终极结局
+    if (count >= 200 && !finaleActive) {
+      triggerFinale();
+    }
+
+    updateStats();
+  }
+
+  // ============ 点击核心逻辑（不检查 autoClicking，供自动连打复用） ============
+  function coreButtClick() {
+    // 确保音频上下文正常工作（处理浏览器自动播放策略）
+    ensureCtx();
+    // 点击后清除提示文字
+    if (dodgeHint) {
+      dodgeHint.textContent = '';
+    }
+    // 截击检测：屁股正在位移动画中 → 奖励
+    if (isDodging) {
+      isDodging = false;
+      clearTimeout(butt._dodgeTimer);
+      butt.classList.remove('dodge', 'swift');
+      interceptCount++;
+      showIntercept();
+      playSound('crit');
+      vibrate(40);
+      shout('⚡截击！');
+      showMessage('⚡ 截击成功！趁屁股逃跑途中命中！+2', true, 'crit-msg');
+      if (challengeActive) { challengeHitsCount++; challengeHitsEl.textContent = challengeHitsCount; }
+      updateCombo();
+      updateCount(2);
+      updateEvolution();
+      // 截击后屁股暴怒加速逃窜（必触发）
+      setTimeout(() => { moveButtRandom(); }, 50);
+      return;
+    }
+
+    const evt = rollRandomEvent();
+
+    if (evt === 'fart') {
+      playSound('fart');
+      vibrate(80);
+      shout('噗～～～ 💨');
+      shake();
+      spawnParticles('fart');
+      showMessage('💨 屁股放了个屁！好臭！', true, 'fart-msg');
+      fartCount++;
+      comboBreak();
+      // 放屁后逃窜
+      if (Math.random() * 100 < 40) setTimeout(moveButtRandom, 300);
+      updateStats();
+      return;
+    }
+
+    if (evt === 'dodge') {
+      playSound('dodge');
+      vibrate(30);
+      shout('嘿！没打着！');
+      shake();
+      dodgeEscaped++;
+      showMessage('🤸 屁股溜走了！快追！', true, 'miss-msg');
+      dodgeCount++;
+      comboBreak();
+      // 闪避事件后必然触发位移
+      setTimeout(moveButtRandom, 100);
+      updateStats();
+      return;
+    }
+
+    if (evt === 'counter') {
+      playSound('counter');
+      vibrate(100);
+      shout('哎哟！你敢打我？！');
+      shake();
+      spawnParticles('fire', null, null, 6);
+      showMessage('👊 屁股反打你一巴掌！计数器 -1', true, 'miss-msg');
+      missCount++;
+      if (count > 0) count--;
+      comboBreak();
+      countSpan.textContent = count;
+      // 反打后嘲讽逃窜
+      setTimeout(() => { dodgeHint.textContent = '😏 来呀，互相伤害呀！'; dodgeHint.className = 'dodge-hint hot'; }, 200);
+      setTimeout(moveButtRandom, 500);
+      updateStats();
+      return;
+    }
+
+    if (evt === 'crit') {
+      playSound('crit');
+      vibrate(60);
+      shout('🎰 暴击！！！');
+      spawnParticles('crit');
+      showMessage('⭐ 暴击×2！双倍伤害！', true, 'crit-msg');
+      critCount++;
+      if (challengeActive) { challengeHitsCount++; challengeHitsEl.textContent = challengeHitsCount; }
+      updateCombo();
+      updateCount(2);
+      updateEvolution();
+      // 暴击后屁股必然暴走
+      setTimeout(moveButtRandom, 80);
+      return;
+    }
+
+    if (evt === null && Math.random() < 0.01) {
+      playSound('scream');
+      vibrate(120);
+      shout('😱～～～～');
+      showMessage('🗣️ 屁股发出了震耳欲聋的尖叫！', true);
+      if (challengeActive) { challengeHitsCount++; challengeHitsEl.textContent = challengeHitsCount; }
+      updateCombo();
+      updateCount(1);
+      updateEvolution();
+      if (Math.random() * 100 < getDodgeChance()) setTimeout(moveButtRandom, 200);
+      return;
+    }
+
+    // 正常点击
+    playSound('slap');
+    vibrate(50);
+    shout();
+    if (challengeActive) { challengeHitsCount++; challengeHitsEl.textContent = challengeHitsCount; }
+    updateCombo();
+    updateCount(1);
+    updateEvolution();
+    // 正常点击后屁股高概率逃跑 + combo 影响逃跑率
+    const dodgeRoll = getDodgeChance();
+    if (Math.random() * 100 < dodgeRoll) {
+      moveButtRandom();
+    } else if (combo >= 3 && Math.random() < 0.3) {
+      // combo≥3时额外追击
+      dodgeHint.textContent = '👀 屁股在找机会逃跑……';
+      dodgeHint.className = 'dodge-hint';
+      setTimeout(() => { if (Math.random() < 0.5) moveButtRandom(); }, 400);
+    } else {
+      dodgeHint.textContent = '👀 屁股盯着你……';
+      dodgeHint.className = 'dodge-hint';
+    }
+  }
+
+  // ============ 点击守卫（用户手动点击入口） ============
+  function onButtClick() {
+    if (modalActive || autoClicking || finaleActive) return;
+    startWander();
+    coreButtClick();
+  }
+
+  // ============ 挑战模式 ============
+  function startChallenge() {
+    if (modalActive || autoClicking || finaleActive || challengeActive || isBananaMode) return;
+    challengeActive = true;
+    challengeHitsCount = 0;
+    challengeTimeLeft = 20;
+    challengeHitsEl.textContent = '0';
+    challengeTimer.textContent = '20';
+    challengeBar.classList.add('show');
+    challengeBtn.textContent = '⏳ 挑战中…';
+    challengeBtn.disabled = true;
+    { const w = window.innerWidth, h = window.innerHeight; butt.style.left = ((w - 130)/2)+'px'; butt.style.top = ((h - 130)/2)+'px'; butt.style.transform = 'none'; }
+    dodgeHint.textContent = '🏃 追着屁股打！20秒倒计时！';
+    dodgeHint.className = 'dodge-hint hot';
+    // 挑战模式取消自动游走（由点击触发的追击更密集）
+    stopWander();
+
+    if (challengeTimerId) clearInterval(challengeTimerId);
+    challengeTimerId = setInterval(() => {
+      challengeTimeLeft--;
+      challengeTimer.textContent = challengeTimeLeft;
+      // 挑战中屁股每秒自动位移一次（最后5秒更疯狂）
+      if (!isDodging && !autoClicking) {
+        moveButtRandom(true);
+        if (challengeTimeLeft <= 5) {
+          setTimeout(() => { if (!isDodging) moveButtRandom(true); }, 400);
+        }
+      }
+      if (challengeTimeLeft <= 5) {
+        challengeTimer.style.color = '#ff3333';
+        challengeTimer.style.animation = 'none';
+        void challengeTimer.offsetWidth;
+        challengeTimer.style.animation = 'shake 0.3s ease';
+      }
+      if (challengeTimeLeft <= 0) {
+        endChallenge();
+      }
+    }, 1000);
+  }
+
+  function endChallenge() {
+    if (!challengeActive) return;
+    challengeActive = false;
+    if (challengeTimerId) { clearInterval(challengeTimerId); challengeTimerId = null; }
+    challengeBar.classList.remove('show');
+    challengeBtn.textContent = '🏃 追桃挑战';
+    challengeBtn.disabled = false;
+    challengeTimer.style.color = '#d45a3a';
+    const msg = challengeHitsCount >= 40 ? '🔥🔥 你是闪电侠吗？！' :
+                challengeHitsCount >= 25 ? '💪💪 四川变脸都没你快！' :
+                challengeHitsCount >= 15 ? '👍 还行，没被溜太惨' :
+                challengeHitsCount >= 8 ? '🐢 屁股把你溜得够呛……' :
+                '🫠 你一下都没打着？？？';
+    showMessage(`⏱️ 挑战结束！20秒内命中 ${challengeHitsCount} 次！${msg}`, true);
+    // 重置位置
+    butt.style.left = ''; butt.style.top = '';
+    dodgeHint.textContent = '💨 追击结束，歇会儿吧～';
+    dodgeHint.className = 'dodge-hint';
+  }
+
+  // ============ 终极结局 ============
+  function triggerFinale() {
+    finaleActive = true;
+    modalActive = true;
+    finaleOverlay.classList.add('show');
+    spawnParticles('fire');
+    spawnParticles('ash');
+    let ashInterval = setInterval(() => spawnParticles('ash'), 300);
+    setTimeout(() => {
+      clearInterval(ashInterval);
+      finaleOverlay.classList.remove('show');
+      modalActive = false;
+      finaleActive = false;
+      showMessage('🔥 屁股涅槃重生！继续打！', true);
+    }, 4000);
+  }
+
+  // ============ 连打 ============
+  function doAutoHits(n) {
+    if (autoClicking || modalActive || finaleActive || challengeActive) return;
+    startWander();
+    autoClicking = true;
+    const btn = auto50Btn;
+    btn.textContent = '⏳ 连打中…';
+    btn.disabled = true;
+    let remaining = n;
+
+    function tick() {
+      if (remaining <= 0 || modalActive || finaleActive) {
+        autoClicking = false;
+        btn.textContent = '🤖 ×50';
+        btn.disabled = false;
+        // 连打结束后显示按钮和统计面板切换
+        if (btnRow) {
+          btnRow.style.opacity = '1';
+          btnRow.style.pointerEvents = 'auto';
+        }
+        if (statsToggle) {
+          statsToggle.style.opacity = '1';
+          statsToggle.style.pointerEvents = 'auto';
+        }
+        if (!modalActive && !finaleActive) {
+          showMessage('🫨 手酸不酸？歇会儿吧', true);
+        }
+        return;
+      }
+
+      playSound('slap');
+      // 10% 概率在×50时触发搞笑事件但不影响计数
+      if (Math.random() < 0.1) shout('啪！');
+      coreButtClick();
+
+      // 屎意/耐受/200 途中触发则终止
+      if (modalActive || finaleActive) {
+        autoClicking = false;
+        btn.textContent = '🤖 ×50';
+        btn.disabled = false;
+        return;
+      }
+
+      remaining--;
+      setTimeout(tick, 100);
+    }
+    tick();
+  }
+
+  // ============ 重置 ============
+  function doReset(msg) {
+    count = 0;
+    tolerance = 0;
+    shitLevel = 0;
+    combo = 0;
+    isBananaMode = false;
+    shitPending = false;
+    tolPending = false;
+    isDodging = false;
+    clearTimeout(butt._dodgeTimer);
+    butt.classList.remove('dodge', 'swift');
+    butt.style.transition = '';
+    stopWander();
+    if (!challengeActive) {
+      const w = window.innerWidth, h = window.innerHeight;
+      butt.style.left = ((w - 130) / 2) + 'px';
+      butt.style.top = ((h - 130) / 2) + 'px';
+      butt.style.transform = 'none';
+    }
+    comboBadge.classList.remove('show');
+    countSpan.textContent = 0;
+    tolBar.style.width = '0%'; tolLabel.textContent = '0%';
+    shitBar.style.width = '0%'; shitLabel.textContent = '0%';
+    butt.innerText = '🍑';
+    document.body.className = '';
+    showMessage(msg || '屁股已被净化，重新开始 💫', true);
+    updateStats();
+  }
+
+  // ============ 统计 ============
+  function updateStats() {
+    $('statTotal').textContent = totalHits;
+    $('statMaxCombo').textContent = maxCombo;
+    $('statCrit').textContent = critCount;
+    $('statFart').textContent = fartCount;
+    $('statDodge').textContent = dodgeCount;
+    $('statCounter').textContent = missCount;
+    $('statIntercept').textContent = interceptCount;
+    $('statDodged').textContent = dodgeEscaped;
+
+    // 手速
+    if (recentTimes.length >= 2) {
+      const interval = (recentTimes[recentTimes.length - 1] - recentTimes[0]) / (recentTimes.length - 1);
+      if (interval > 0) {
+        const speed = Math.round(1000 / interval);
+        $('statSpeed').textContent = speed + ' 击/秒';
+      }
+    }
+    // 称号
+    $('titleDisplay').textContent = getTitle().name;
+  }
+
+  // ============ 事件绑定 ============
+  butt.addEventListener('click', onButtClick);
+  butt.addEventListener('touchstart', (e) => { e.preventDefault(); onButtClick(); }, { passive: false });
+
+  resetBtn.addEventListener('click', () => doReset('🧼 屁股已被净化，重新开始 💫'));
+  auto50Btn.addEventListener('click', () => doAutoHits(50, false));
+  challengeBtn.addEventListener('click', startChallenge);
+  challengeStopBtn.addEventListener('click', endChallenge);
+
+  // 硬重置：清空所有 localStorage 记录
+  $('hardResetBtn').addEventListener('click', () => {
+    if (confirm('⚠️ 确定要清空所有打屁股记录吗？\n（总伤害、最高连击等全都没了）')) {
+      localStorage.removeItem('pipi_total');
+      localStorage.removeItem('pipi_maxcombo');
+      location.reload();
+    }
+  });
+
+  modalClose.addEventListener('click', () => {
+    modalOverlay.classList.remove('show');
+    modalActive = false;
+  });
+
+  // 统计面板折叠
+  let statsOpen = false;
+  statsToggle.addEventListener('click', () => {
+    statsOpen = !statsOpen;
+    statsPanel.classList.toggle('open', statsOpen);
+    statsToggle.textContent = statsOpen ? '📊 收起档案 ▲' : '📊 查看屁股档案 ▼';
+  });
+
+  // 键盘
+  document.addEventListener('keydown', (e) => {
+    if (e.key === ' ' && !e.repeat) { e.preventDefault(); onButtClick(); }
+    if (e.key === 'r' || e.key === 'R') { doReset('重置 (按键 R)'); }
+  });
+
+  // 音频初始化
+  document.addEventListener('click', () => { const ctx = ensureCtx(); if (ctx && ctx.state === 'suspended') ctx.resume(); }, { once: true });
+
+  // ============ 初始化 ============
+  (function startup() {
+    const savedTotal = parseInt(localStorage.getItem('pipi_total')) || 0;
+    const savedMax = parseInt(localStorage.getItem('pipi_maxcombo')) || 0;
+    currentEvo = getEvoStage();
+    butt.innerText = '🍑';
+    // 居中定位屁股
+    (function centerButt() {
+      const w = window.innerWidth, h = window.innerHeight;
+      butt.style.left = ((w - 130) / 2) + 'px';
+      butt.style.top = ((h - 130) / 2) + 'px';
+      butt.style.transform = 'none';
+    })();
+
+    if (savedTotal > 0) {
+      // 显示启动对话框
+      const overlay = $('startupOverlay');
+      const text = $('startupText');
+      text.innerHTML = `检测到上次的记录：<br>累计打了 <strong>${savedTotal}</strong> 下，最高连击 <strong>${savedMax}</strong> 连<br><br>要继续蹂躏屁股吗？`;
+      overlay.classList.add('show');
+      $('startupContinue').onclick = () => {
+        overlay.classList.remove('show');
+        totalHits = savedTotal;
+        maxCombo = savedMax;
+        currentEvo = getEvoStage();
+        butt.innerText = '🍑';
+        // 居中桃子
+        const w = window.innerWidth, h = window.innerHeight;
+        butt.style.left = ((w - 130) / 2) + 'px';
+        butt.style.top = ((h - 130) / 2) + 'px';
+        butt.style.transform = 'none';
+        updateStats();
+        showMessage(`👋 欢迎回来！你已累计打了 ${totalHits} 下屁股`, true);
+        if (totalHits >= 1000) {
+          spawnParticles('fire');
+          spawnParticles('crit');
+        }
+      };
+      $('startupReset').onclick = () => {
+        overlay.classList.remove('show');
+        localStorage.removeItem('pipi_total');
+        localStorage.removeItem('pipi_maxcombo');
+        totalHits = 0;
+        maxCombo = 0;
+        currentEvo = 0;
+        butt.innerText = '🍑';
+        // 居中桃子
+        const w = window.innerWidth, h = window.innerHeight;
+        butt.style.left = ((w - 130) / 2) + 'px';
+        butt.style.top = ((h - 130) / 2) + 'px';
+        butt.style.transform = 'none';
+        updateStats();
+        showMessage('🗑️ 记录已清除，从头开始！', true);
+      };
+    } else {
+      // 首次加载，居中桃子
+      const w = window.innerWidth, h = window.innerHeight;
+      butt.style.left = ((w - 130) / 2) + 'px';
+      butt.style.top = ((h - 130) / 2) + 'px';
+      butt.style.transform = 'none';
+      updateStats();
+    }
+  })();
+
+  console.log('🍑 打屁屁 v2.0 已启动！Space 打 · R 重置 · 祝你好臀');
+})();
+</script>
+</body>
+</html>
