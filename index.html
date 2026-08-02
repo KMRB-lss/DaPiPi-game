@@ -530,6 +530,7 @@
     <button id="resetBtn" class="btn btn-danger btn-sm">🧼 重置</button>
     <button id="challengeBtn" class="btn btn-purple btn-sm">🏃 追桃挑战</button>
     <button id="auto50Btn" class="btn">🤖 ×50</button>
+    <button id="leaderboardBtn" class="btn btn-gold btn-sm">🏆 排行榜</button>
 
   </div>
   <div class="challenge-bar" id="challengeBar">
@@ -593,6 +594,33 @@
       <button id="startupContinue" class="btn btn-gold">继续</button>
       <button id="startupReset" class="btn btn-danger">重新开始</button>
     </div>
+  </div>
+</div>
+
+<!-- 排行榜模态框 -->
+<div id="leaderboardOverlay" class="modal-overlay">
+  <div class="modal-box" style="max-width:520px;max-height:82vh;overflow-y:auto;padding:28px 32px;">
+    <h2 style="font-size:1.6rem;margin-bottom:4px;">🏆 排行榜</h2>
+    <p style="font-size:0.85rem;color:#888;margin-bottom:12px;">全球打屁屁高手排名</p>
+    <div id="leaderboardList" style="text-align:left;min-height:60px;">
+      <div style="text-align:center;color:#aaa;padding:20px;">加载中...</div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button id="submitScoreBtn" class="btn btn-gold">📤 提交我的成绩</button>
+      <button id="refreshLeaderboardBtn" class="btn btn-purple">🔄 刷新</button>
+      <button id="closeLeaderboardBtn" class="btn btn-danger">关闭</button>
+    </div>
+    <div id="submitStatus" style="margin-top:8px;font-size:0.85rem;color:#888;min-height:1.2em;"></div>
+  </div>
+</div>
+
+<!-- 昵称输入模态框 -->
+<div id="nicknameOverlay" class="modal-overlay">
+  <div class="modal-box" style="max-width:380px;">
+    <h2 style="font-size:1.4rem;">✏️ 设置昵称</h2>
+    <p style="font-size:0.9rem;color:#666;margin-bottom:14px;">输入昵称提交你的成绩到排行榜</p>
+    <input id="nicknameInput" type="text" maxlength="20" placeholder="输入昵称（最多20字）..." style="width:100%;padding:12px 16px;border:2px solid #e0c8b8;border-radius:30px;font-size:1rem;text-align:center;margin-bottom:14px;box-sizing:border-box;outline:none;background:#faf5f0;color:#5a3a2a;">
+    <button id="nicknameConfirmBtn" class="btn btn-gold" style="width:100%;padding:12px;font-size:1rem;">✅ 确定</button>
   </div>
 </div>
 
@@ -1675,6 +1703,147 @@
       updateStats();
     }
   })();
+
+  // ============ 排行榜系统 ============
+  const API_BASE = window.location.origin;
+  let nickname = localStorage.getItem('pipi_nickname') || '';
+
+  // 获取排行榜
+  async function fetchLeaderboard() {
+    try {
+      const res = await fetch(API_BASE + '/api/leaderboard');
+      if (!res.ok) throw new Error('网络错误');
+      return await res.json();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 提交成绩
+  async function submitScore(nick, hits) {
+    try {
+      const res = await fetch(API_BASE + '/api/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: nick, totalHits: hits }),
+      });
+      if (!res.ok) throw new Error('提交失败');
+      return await res.json();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 渲染排行榜
+  function renderLeaderboard(data) {
+    const list = $('leaderboardList');
+    if (!data || data.length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:#aaa;padding:30px 0;">🍑 还没有人上榜，快来打屁股吧！</div>';
+      return;
+    }
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">';
+    html += '<tr style="border-bottom:2px solid #f0d0c8;color:#8a5a4a;"><th style="padding:6px 4px;text-align:center;width:40px;">#</th><th style="padding:6px 4px;text-align:left;">昵称</th><th style="padding:6px 4px;text-align:right;">👋 累计</th></tr>';
+    data.forEach((item, i) => {
+      const isMe = item.nickname === nickname;
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+      const bg = isMe ? '#fff0e8' : (i % 2 === 0 ? '#faf5f0' : 'transparent');
+      const bold = isMe ? 'font-weight:bold;' : '';
+      html += `<tr style="background:${bg};${bold}border-radius:8px;">
+        <td style="padding:5px 4px;text-align:center;font-size:1.1rem;">${medal || (i + 1)}</td>
+        <td style="padding:5px 4px;text-align:left;">${isMe ? '👉 ' : ''}${escHtml(item.nickname)}</td>
+        <td style="padding:5px 4px;text-align:right;color:#d45a3a;">${item.totalHits.toLocaleString()}</td>
+      </tr>`;
+    });
+    html += '</table>';
+    list.innerHTML = html;
+  }
+
+  function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // 打开排行榜
+  async function openLeaderboard() {
+    const overlay = $('leaderboardOverlay');
+    overlay.classList.add('show');
+    $('submitStatus').textContent = '';
+    $('leaderboardList').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;">⏳ 加载中...</div>';
+    const data = await fetchLeaderboard();
+    renderLeaderboard(data);
+  }
+
+  // 提交成绩操作
+  async function doSubmitScore() {
+    const savedNick = localStorage.getItem('pipi_nickname');
+    if (savedNick) {
+      nickname = savedNick;
+      $('submitStatus').textContent = '⏳ 提交中...';
+      const result = await submitScore(nickname, totalHits);
+      if (result && result.success) {
+        const rankMsg = result.rank ? `，排名第 ${result.rank} 名` : '';
+        $('submitStatus').textContent = `✅ 提交成功${rankMsg}！总伤害 ${totalHits.toLocaleString()}`;
+        const data = await fetchLeaderboard();
+        renderLeaderboard(data);
+      } else {
+        $('submitStatus').textContent = '❌ 提交失败，请稍后重试';
+      }
+    } else {
+      // 弹出昵称输入框
+      $('leaderboardOverlay').classList.remove('show');
+      $('nicknameOverlay').classList.add('show');
+      $('nicknameInput').value = '';
+      $('nicknameInput').focus();
+    }
+  }
+
+  // 排行榜按钮
+  $('leaderboardBtn').addEventListener('click', openLeaderboard);
+  $('closeLeaderboardBtn').addEventListener('click', () => {
+    $('leaderboardOverlay').classList.remove('show');
+  });
+  $('refreshLeaderboardBtn').addEventListener('click', async () => {
+    $('leaderboardList').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;">⏳ 刷新中...</div>';
+    const data = await fetchLeaderboard();
+    renderLeaderboard(data);
+    $('submitStatus').textContent = '🔄 已刷新';
+  });
+  $('submitScoreBtn').addEventListener('click', doSubmitScore);
+
+  // 昵称确认
+  $('nicknameConfirmBtn').addEventListener('click', () => {
+    const input = $('nicknameInput');
+    const nick = input.value.trim();
+    if (!nick) {
+      input.style.borderColor = '#ff4444';
+      input.placeholder = '昵称不能为空！';
+      return;
+    }
+    input.style.borderColor = '#e0c8b8';
+    nickname = nick;
+    localStorage.setItem('pipi_nickname', nick);
+    $('nicknameOverlay').classList.remove('show');
+    // 提交成绩
+    setTimeout(async () => {
+      $('leaderboardOverlay').classList.add('show');
+      $('submitStatus').textContent = '⏳ 提交中...';
+      const result = await submitScore(nickname, totalHits);
+      if (result && result.success) {
+        const rankMsg = result.rank ? `，排名第 ${result.rank} 名` : '';
+        $('submitStatus').textContent = `✅ 提交成功${rankMsg}！总伤害 ${totalHits.toLocaleString()}`;
+        const data = await fetchLeaderboard();
+        renderLeaderboard(data);
+      } else {
+        $('submitStatus').textContent = '❌ 提交失败，请稍后重试';
+      }
+    }, 300);
+  });
+
+  // 昵称输入框回车确认
+  $('nicknameInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('nicknameConfirmBtn').click();
+  });
 
   console.log('🍑 打屁屁 v2.0 已启动！Space 打 · R 重置 · 祝你好臀');
 })();

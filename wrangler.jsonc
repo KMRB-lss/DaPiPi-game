@@ -3,12 +3,17 @@
   "name": "dapipi-game",
   "account_id": "a76f8b721d0670720490804e9bcb1d41",
   "compatibility_date": "2026-08-03",
-  "observability": {
-    "enabled": true
-  },
+  "main": "src/index.js",
   "assets": {
-    "directory": "."
+    "directory": ".",
+    "binding": "ASSETS"
   },
+  "kv_namespaces": [
+    {
+      "binding": "LEADERBOARD",
+      "id": "08b33faf7de1497297b41f1d175cb5cc"
+    }
+  ],
   "compatibility_flags": [
     "nodejs_compat"
   ]
