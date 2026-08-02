@@ -4,7 +4,10 @@
 
 ## 🎮 在线体验
 
-[https://kmrb-lss.github.io/DaPiPi-game/](https://kmrb-lss.github.io/DaPiPi-game/)
+| 平台 | 地址 |
+|------|------|
+| 🌐 **Cloudflare Workers** | [https://dapipi-game.brazen-maize-1b8.workers.dev](https://dapipi-game.brazen-maize-1b8.workers.dev) |
+| 🐙 GitHub Pages | [https://kmrb-lss.github.io/DaPiPi-game/](https://kmrb-lss.github.io/DaPiPi-game/) |
 
 ## ✨ 特色玩法
 
