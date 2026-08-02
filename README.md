@@ -3,8 +3,13 @@
 > 一个充满互动趣味的网页小游戏——狂点桃子🍑发泄压力，看它如何逃跑、放屁、甚至进化！
 
 [![🚀 Deploy to Cloudflare Workers](https://github.com/KMRB-lss/DaPiPi-game/actions/workflows/deploy.yml/badge.svg)](https://github.com/KMRB-lss/DaPiPi-game/actions/workflows/deploy.yml)
+[![🔄 Auto Update README](https://github.com/KMRB-lss/DaPiPi-game/actions/workflows/update-readme.yml/badge.svg)](https://github.com/KMRB-lss/DaPiPi-game/actions/workflows/update-readme.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/KMRB-lss/DaPiPi-game?style=social)](https://github.com/KMRB-lss/DaPiPi-game)
+
+---
+
+> 📅 **最后更新：** {{BUILD_TIME}}
 
 ---
 
@@ -31,6 +36,19 @@
 - **数据持久化** 💾 — 使用 localStorage 保存历史记录，下次打开可继续
 - **键盘快捷键** ⌨️ — Space 击打，R 重置
 
+## 🏆 排行榜系统
+
+> 无需注册账号，输入昵称即可参与全球排名！
+
+| 功能 | 说明 |
+|------|------|
+| 📤 **提交成绩** | 游戏结束后点击"提交我的成绩"，输入昵称即可上传 |
+| 👑 **全球排行** | 查看所有玩家的击打次数排名，前 100 名上榜 |
+| 🔄 **自动更新** | 相同昵称只保留最高分，随时可以刷新排名 |
+| 👉 **高亮自己** | 排行榜中自动标记你的位置，一目了然 |
+
+**数据存储：** 使用 Cloudflare KV 持久化存储，全球边缘节点加速访问。
+
 ## 🎯 游戏机制
 
 | 机制 | 说明 |
@@ -47,6 +65,7 @@
 - **音效** — Web Audio API 程序化生成（无需外部音频文件）
 - **震动** — Vibration API 提供移动端震动反馈
 - **存储** — localStorage 数据持久化
+- **排行榜 API** — Cloudflare Workers + KV 存储，提供 RESTful 接口
 - **部署** — Cloudflare Workers（全球边缘网络）+ GitHub Actions 自动部署
 
 ## 🚀 本地运行
@@ -72,12 +91,11 @@ npx serve .
 1. 拉取最新代码
 2. 安装 Wrangler CLI
 3. 部署到 Cloudflare Workers 全球边缘网络
+4. 自动更新 README 中的最后更新时间
 
-Workflow 配置文件：[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
-
-## 🤝 贡献
-
-欢迎提交 Issue 和 PR！如果你有好的想法或发现了 Bug，请随时提出。
+Workflow 配置文件：
+- [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) — 部署到 Cloudflare Workers
+- [`.github/workflows/update-readme.yml`](.github/workflows/update-readme.yml) — 自动更新 README
 
 ## 📄 许可证
 
