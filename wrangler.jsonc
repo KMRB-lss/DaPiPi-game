@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "dapipi-game",
+  "account_id": "a76f8b721d0670720490804e9bcb1d41",
   "compatibility_date": "2026-08-03",
   "observability": {
     "enabled": true

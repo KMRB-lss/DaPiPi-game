@@ -6,8 +6,10 @@
 
 | 平台 | 地址 |
 |------|------|
-| 🌐 **Cloudflare Workers** | [https://dapipi-game.brazen-maize-1b8.workers.dev](https://dapipi-game.brazen-maize-1b8.workers.dev) |
+| 🌐 **Cloudflare Workers** | [https://dapipi-game.235575808.workers.dev](https://dapipi-game.235575808.workers.dev) |
 | 🐙 GitHub Pages | [https://kmrb-lss.github.io/DaPiPi-game/](https://kmrb-lss.github.io/DaPiPi-game/) |
+
+> ⚡ 每次推送代码到 `main` 分支，Cloudflare Workers 会自动重新部署，永久有效。
 
 ## ✨ 特色玩法
 
