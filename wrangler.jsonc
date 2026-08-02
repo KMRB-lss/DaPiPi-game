@@ -6,9 +6,7 @@
     "enabled": true
   },
   "assets": {
-    "directory": ".",
-    "not_found_handling": "single_page_application",
-    "exclude": [".git", ".wrangler", ".gitignore", "LICENSE", "*.md"]
+    "directory": "."
   },
   "compatibility_flags": [
     "nodejs_compat"
