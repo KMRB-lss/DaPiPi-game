@@ -17,3 +17,10 @@ Thumbs.db
 # 环境
 .env
 .env.local
+
+# wrangler files (Cloudflare Workers)
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
